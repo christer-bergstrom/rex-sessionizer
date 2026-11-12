@@ -73,12 +73,12 @@ get_top_level_directories() {
 find_current_directory() {
     local label=$1
     [[ -z $label ]] && return 0
-    find "$work_dir" -mindepth 1 -maxdepth 2 -type d 2>/dev/null | while IFS= read -r dir; do
-        if [[ "$(basename "$dir")" == "$label" ]]; then
-            echo "$dir"
-            return
-        fi
-    done
+    # One find instead of a basename fork per directory: with ~1000 dirs at
+    # depth 2 the loop took ~10 s before fzf appeared. Glob characters in the
+    # label are escaped so -name matches it literally.
+    local pattern=${label//\\/\\\\}
+    pattern=${pattern//\*/\\*}; pattern=${pattern//\?/\\?}; pattern=${pattern//\[/\\[}
+    find "$work_dir" -mindepth 1 -maxdepth 2 -type d -name "$pattern" -print -quit 2>/dev/null || true
 }
 
 find_work_directories() {
